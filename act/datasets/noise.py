@@ -12,8 +12,9 @@ from act.utils.audio import get_video_and_audio
 
 class Noise(torch.utils.data.Dataset):
     
-    def __init__(self, transforms=None):
+    def __init__(self, num_samples=10000, transforms=None):
         super().__init__()
+        self.num_samples = num_samples
         self.transforms = transforms
     
     def load_media(self, path):
@@ -49,7 +50,7 @@ class Noise(torch.utils.data.Dataset):
         return item
     
     def __len__(self):
-        return 10000
+        return self.num_samples
 
     
 if __name__ == "__main__":
@@ -61,6 +62,7 @@ if __name__ == "__main__":
         AudioSpectrogram,
         AudioLog,
         AudioStandardNormalize,
+        AudioUnsqueezeChannelDim,
     )
     
     transforms = [
@@ -68,6 +70,7 @@ if __name__ == "__main__":
         AudioSpectrogram(n_fft=512, hop_length=128),
         AudioLog(),
         AudioStandardNormalize(),
+        AudioUnsqueezeChannelDim(dim=0),
     ]
     transforms = torchvision.transforms.Compose(transforms)
 

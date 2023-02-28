@@ -606,7 +606,9 @@ class AudioTimeCropDiscrete(torch.nn.Module):
         a_right_i = a_right_i // a_discretisation_frames * a_discretisation_frames            
         item['audio'] = aud[a_left_i:a_right_i]
         item['meta']['start_sec'] = a_left_i / a_fps
-        item['targets']['noise_target'] = int(np.ceil((a_left_i / a_fps) / self.discretisation))
+        item['targets']['noise_target'] = max(int(np.ceil((a_left_i / a_fps) / self.discretisation)), 1)
+        if item['targets']['noise_target'] == -1:
+            exit("negative noise target")
         item['meta']['new_duration'] = self.crop_len_sec
         return item
 
