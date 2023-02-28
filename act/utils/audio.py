@@ -1,7 +1,7 @@
 """
 Audio utility functions.
 
-Original author: Vladimir Lashkin
+Original author: Vladimir Iashkin
 """
 from pathlib import Path
 import tempfile
