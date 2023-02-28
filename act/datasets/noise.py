@@ -49,4 +49,21 @@ class Noise(torch.utils.data.Dataset):
 
     
 if __name__ == "__main__":
-    pass
+    from act.datasets.transforms import (
+        AudioTimeCrop,
+        AudioSpectrogram,
+        AudioLog,
+        AudioStandardNormalize,
+    )
+    
+    transforms = [
+        AudioTimeCrop(crop_len_sec=5.0, is_random=True),
+        AudioSpectrogram(n_fft=512, hop_length=128),
+        AudioLog(),
+        AudioStandardNormalize(),
+    ]
+    transforms = torchvision.transforms.Compose(transforms)
+
+    dataset = Noise(transforms=transforms)
+    item = dataset[0]
+    import ipdb; ipdb.set_trace()
