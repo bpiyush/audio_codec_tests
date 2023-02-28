@@ -1,2 +1,2 @@
-# audio_codec_tests
+# Audio Codec Tests
 Tests for codec artefacts in stored audio samples.
