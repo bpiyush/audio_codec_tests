@@ -562,6 +562,51 @@ class AudioTimeCrop(torch.nn.Module):
         else:
             a_left_i, a_right_i = self.get_center_crop(a_len_frames, a_crop_len_frames)
         item['audio'] = aud[a_left_i:a_right_i]
+        item['meta']['start_sec'] = a_left_i / a_fps
+        item['meta']['new_duration'] = self.crop_len_sec
+        return item
+
+
+class AudioTimeCropDiscrete(torch.nn.Module):
+    '''only used during audio feature extractor pre-training'''
+
+    def __init__(self, crop_len_sec, is_random, discretisation=0.1) -> None:
+        super().__init__()
+        self.crop_len_sec = crop_len_sec
+        self.is_random = is_random
+        self.discretisation = discretisation
+
+    @staticmethod
+    def sec2frames(sec, fps):
+        return int(sec * fps)
+
+    def get_random_crop(self, len_frames: int, crop_len_frames: int):
+        if len_frames == crop_len_frames:
+            return 0, len_frames
+        left_i = random.randint(0, len_frames - crop_len_frames)
+        return left_i, left_i+crop_len_frames
+
+    def get_center_crop(self, len_frames, crop_len_frames):
+        left_i = int(round((len_frames - crop_len_frames) / 2.))
+        return left_i, left_i+crop_len_frames
+
+    def forward(self, item):
+        aud = item['audio']
+        a_len_frames = aud.shape[0]
+        a_fps = int(item['meta']['audio']['framerate'][0])
+        a_discretisation_frames = int(self.discretisation * a_fps)
+        assert a_fps == item['meta']['audio']['framerate'][0], f'{a_fps} ' + \
+            item['meta']['audio']['framerate'][0]
+        a_crop_len_frames = sec2frames(self.crop_len_sec, a_fps)
+        if self.is_random:
+            a_left_i, a_right_i = self.get_random_crop(a_len_frames, a_crop_len_frames)
+        else:
+            a_left_i, a_right_i = self.get_center_crop(a_len_frames, a_crop_len_frames)
+        a_left_i = a_left_i // a_discretisation_frames * a_discretisation_frames
+        a_right_i = a_right_i // a_discretisation_frames * a_discretisation_frames            
+        item['audio'] = aud[a_left_i:a_right_i]
+        item['meta']['start_sec'] = a_left_i / a_fps
+        item['targets']['noise_target'] = int(np.ceil((a_left_i / a_fps) / self.discretisation))
         item['meta']['new_duration'] = self.crop_len_sec
         return item
 

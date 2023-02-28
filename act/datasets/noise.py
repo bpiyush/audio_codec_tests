@@ -36,6 +36,7 @@ class Noise(torch.utils.data.Dataset):
             'audio': audio,
             'meta': meta,
             'path': str(path),
+            'targets': {'a_start_i_sec': 0, 'v_start_i_sec': 0, 'offset_sec': 0},
             # 'targets': {'vggsound_target': target, 'vggsound_label': self.target2label[target]},
             # 'split': self.split,
         }
@@ -50,14 +51,15 @@ class Noise(torch.utils.data.Dataset):
     
 if __name__ == "__main__":
     from act.datasets.transforms import (
-        AudioTimeCrop,
+        # AudioTimeCrop,
+        AudioTimeCropDiscrete,
         AudioSpectrogram,
         AudioLog,
         AudioStandardNormalize,
     )
     
     transforms = [
-        AudioTimeCrop(crop_len_sec=5.0, is_random=True),
+        AudioTimeCropDiscrete(crop_len_sec=5.0, is_random=True),
         AudioSpectrogram(n_fft=512, hop_length=128),
         AudioLog(),
         AudioStandardNormalize(),
@@ -66,4 +68,5 @@ if __name__ == "__main__":
 
     dataset = Noise(transforms=transforms)
     item = dataset[0]
-    import ipdb; ipdb.set_trace()
+    print("Start time: ", item["meta"]["start_sec"])
+    print("Label: ", item['targets']['noise_target'])
