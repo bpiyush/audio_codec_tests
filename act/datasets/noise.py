@@ -36,7 +36,7 @@ class Noise(torch.utils.data.Dataset):
             'audio': audio,
             'meta': meta,
             'path': str(path),
-            'targets': {'a_start_i_sec': 0, 'v_start_i_sec': 0, 'offset_sec': 0},
+            'targets': {'a_start_i_sec': 0, 'noise_target': None},
             # 'targets': {'vggsound_target': target, 'vggsound_label': self.target2label[target]},
             # 'split': self.split,
         }
