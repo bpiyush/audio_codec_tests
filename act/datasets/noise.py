@@ -47,9 +47,14 @@ class Noise(torch.utils.data.Dataset):
         #     item['targets']['v_start_i_sec'] = self.vid2offset_params[Path(path).stem]['v_start_i_sec']
 
         return item
+    
+    def __len__(self):
+        return 10000
 
     
 if __name__ == "__main__":
+    import time
+
     from act.datasets.transforms import (
         # AudioTimeCrop,
         AudioTimeCropDiscrete,
@@ -70,3 +75,15 @@ if __name__ == "__main__":
     item = dataset[0]
     print("Start time: ", item["meta"]["start_sec"])
     print("Label: ", item['targets']['noise_target'])
+    
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=0)
+    
+    start = time.time()
+    batch = next(iter(dataloader))
+    end = time.time()
+    print("Time taken to create a single batch: ", end - start)
+    print(batch.keys())
+    print(batch['video'].shape)
+    print(batch['audio'].shape)
+    print(len(batch["targets"]["noise_target"]), batch["targets"]["noise_target"])
+    
