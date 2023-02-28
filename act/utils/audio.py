@@ -1,4 +1,8 @@
-"""Audio utility functions."""
+"""
+Audio utility functions.
+
+Original author: Vladimir Lashkin
+"""
 from pathlib import Path
 import tempfile
 
