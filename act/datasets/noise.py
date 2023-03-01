@@ -1,4 +1,9 @@
-"""Dataset of randomly generated audio-video noise."""
+"""
+Dataset of randomly generated audio-video noise.
+
+Original author: Vladimir Iashin
+
+"""
 import os
 import random
 import sys
