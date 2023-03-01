@@ -55,13 +55,13 @@ For now, we stick to using `resnet18` as the base model.
 
 ## Training
 
-* Training on dataset of random noise encoded with `aac@22100`:
+* Training on dataset of random noise encoded with `aac@22050`:
 ```sh
 python train.py --no_wandb --dataset noise --batch_size 4 --epochs 100
 ```
 Note that the `--no_wandb` flag is used to disable logging to `wandb`. You can remove this flag if you want to log to `wandb`.
 
-* Training on AudioSet dataset encoded with `aac@44100`:
+* Training on AudioSet dataset encoded with `aac@22050`:
 ```sh
 python train.py --no_wandb --dataset audioset --batch_size 4 --epochs 100
 ```
