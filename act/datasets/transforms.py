@@ -563,7 +563,8 @@ class AudioTimeCrop(torch.nn.Module):
             a_left_i, a_right_i = self.get_center_crop(a_len_frames, a_crop_len_frames)
         item['audio'] = aud[a_left_i:a_right_i]
         item['meta']['start_sec'] = a_left_i / a_fps
-        item['targets']['noise_target'] = max(int(np.ceil((a_left_i / a_fps) / 0.1)), 1)
+        label = min(max(int(np.ceil((a_left_i / a_fps) / 0.1)), 1), 51)
+        item['targets']['noise_target'] = label
         if item['targets']['noise_target'] == -1:
             exit("negative noise target")
         item['meta']['new_duration'] = self.crop_len_sec
