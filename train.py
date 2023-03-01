@@ -87,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--suffix", type=str, default="")
-    parser.add_argument("-c", "--checkpoint", type=str, default=None)
+    parser.add_argument("-c", "--ckpt_path", type=str, default=None)
     parser.add_argument(
         "--time_crop",
         type=str,
