@@ -170,6 +170,11 @@ if __name__ == "__main__":
         strategy = DDPStrategy(find_unused_parameters=False),
     )
 
+    if args.ckpt_path is not None:
+        print(f">>> Initializing with checkpoint: {args.ckpt_path}")
+        state_dict = torch.load(args.ckpt_path, map_location='cpu')['state_dict']
+        pl_module.load_state_dict(state_dict)
+
     # Run validation
     if not args.only_train:
         trainer.validate(
