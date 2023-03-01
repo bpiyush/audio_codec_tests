@@ -95,7 +95,26 @@ class AudioSet(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.df)
 
+
+def load_audioset(transforms, split="val", data_root=None):
     
+    assert split in ["train", "val"], f"Unknown split: {split}"
+
+    if data_root is None:
+        data_root = os.path.join(repo_path, "data")
+
+    data_dir = os.path.join(data_root, "AudioSet")
+    csv_path = os.path.join(data_dir, f"annotations/clean_eval_segments-v1-{split}.csv")
+    video_dir = os.path.join(data_dir, "cut_clips")
+
+    dataset = AudioSet(
+        media_dir=video_dir,
+        csv_path=csv_path,
+        transforms=transforms,
+    )
+    return dataset
+
+
 if __name__ == "__main__":
     import time
     
@@ -118,19 +137,11 @@ if __name__ == "__main__":
     ]
     transforms = torchvision.transforms.Compose(transforms)
 
-    data_root = os.path.join(repo_path, "data")
-    data_dir = os.path.join(data_root, "AudioSet")
-    csv_path = os.path.join(data_dir, "annotations/clean_eval_segments-v1-val.csv")
-    video_dir = os.path.join(data_dir, "cut_clips")
-
-    dataset = AudioSet(
-        media_dir=video_dir,
-        csv_path=csv_path,
-        transforms=transforms,
-    )
+    dataset = load_audioset(transforms=transforms)
     item = dataset[0]
     print("Start time: ", item["meta"]["start_sec"])
     print("Label: ", item['targets']['noise_target'])
+    print("Metadata: ", item["meta"]["audio"])
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=0)
     

@@ -17,6 +17,7 @@ from act.datasets.transforms import (
     AudioUnsqueezeChannelDim,
 )
 from act.datasets.noise import Noise
+from act.datasets.audioset import load_audioset
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -75,6 +76,7 @@ if __name__ == "__main__":
     
     # Read args
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, default="noise", choices=["noise", "audioset"])
     parser.add_argument("--only_train", action="store_true")
     parser.add_argument("--only_eval", action="store_true")
     parser.add_argument("--no_wandb", action="store_true")
@@ -98,8 +100,16 @@ if __name__ == "__main__":
         AudioUnsqueezeChannelDim(dim=0),
     ]
     transforms = torchvision.transforms.Compose(transforms)
-    train_dataset = Noise(num_samples=10000, transforms=transforms)
-    valid_dataset = Noise(num_samples=1000, transforms=transforms)
+
+    if args.dataset == "noise":
+        train_dataset = Noise(num_samples=10000, transforms=transforms)
+        valid_dataset = Noise(num_samples=1000, transforms=transforms)
+    elif args.dataset == "audioset":
+        train_dataset = load_audioset(transforms=transforms, split="train")
+        valid_dataset = load_audioset(transforms=transforms, split="val")
+    else:
+        raise ValueError(f"Invalid dataset: {args.dataset}")
+        
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=args.batch_size,
