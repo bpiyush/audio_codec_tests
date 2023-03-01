@@ -62,7 +62,7 @@ if __name__ == "__main__":
     import time
 
     from act.datasets.transforms import (
-        # AudioTimeCrop,
+        AudioTimeCrop,
         AudioTimeCropDiscrete,
         AudioSpectrogram,
         AudioLog,
@@ -71,7 +71,8 @@ if __name__ == "__main__":
     )
     
     transforms = [
-        AudioTimeCropDiscrete(crop_len_sec=5.0, is_random=True),
+        AudioTimeCrop(crop_len_sec=5.0, is_random=True),
+        # AudioTimeCropDiscrete(crop_len_sec=5.0, is_random=True),
         AudioSpectrogram(n_fft=512, hop_length=128),
         AudioLog(),
         AudioStandardNormalize(),

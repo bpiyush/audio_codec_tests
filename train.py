@@ -10,6 +10,7 @@ from act.model.modules.feature_extractors import (
     ResNetAudio,
 )
 from act.datasets.transforms import (
+    AudioTimeCrop,
     AudioTimeCropDiscrete,
     AudioSpectrogram,
     AudioLog,
@@ -86,14 +87,28 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--suffix", type=str, default="")
+    parser.add_argument(
+        "--time_crop",
+        type=str,
+        default="continuous",
+        choices=["continuous", "discrete"],
+        help="Whether to use continuous (e.g. 2.34, 2.45, ...)"\
+            "or discrete (2.3, 2.4,..) time cropping."
+    )
     args = parser.parse_args()
 
     # Load model
     model = ResNetAudio("resnet18", num_classes=50, extract_features=False)
 
     # Load dataset
+    if args.time_crop == "continuous":
+        TimeCrop = AudioTimeCrop
+    elif args.time_crop == "discrete":
+        TimeCrop = AudioTimeCropDiscrete
+    else:
+        raise ValueError(f"Invalid time_crop: {args.time_crop}")
     transforms = [
-        AudioTimeCropDiscrete(crop_len_sec=5.0, is_random=True),
+        TimeCrop(crop_len_sec=5.0, is_random=True),
         AudioSpectrogram(n_fft=512, hop_length=128),
         AudioLog(),
         AudioStandardNormalize(),
