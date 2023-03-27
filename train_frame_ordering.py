@@ -195,7 +195,8 @@ if __name__ == "__main__":
         logger = None
     else:
         run_name = f"act-frame-ordering-resnet18-"\
-            f"lr-{args.lr}-bs-{args.batch_size}"
+            f"lr-{args.lr}-bs-{args.batch_size}-"\
+                f"-codec-{args.codec}-fps-{args.audio_fps}"
         if args.suffix:
             run_name += f"-{args.suffix}"
         logger = pl.loggers.WandbLogger(
