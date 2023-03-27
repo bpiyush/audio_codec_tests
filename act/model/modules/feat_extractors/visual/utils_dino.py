@@ -32,6 +32,8 @@ from torch import nn
 import torch.distributed as dist
 from PIL import ImageFilter, ImageOps
 
+import warnings
+
 
 class GaussianBlur(object):
     """
@@ -209,6 +211,7 @@ def bool_flag(s):
     elif s.lower() in TRUTHY_STRINGS:
         return True
     else:
+        import argparse
         raise argparse.ArgumentTypeError("invalid value for a boolean flag")
 
 
@@ -546,7 +549,6 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
 
 
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
-    # type: (Tensor, float, float, float, float) -> Tensor
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
 
