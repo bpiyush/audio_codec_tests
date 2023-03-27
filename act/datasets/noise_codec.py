@@ -12,7 +12,15 @@ import torchaudio
 
 
 class NoiseCodec(torch.utils.data.Dataset):
-    def __init__(self, data_dir, audio_len=5., audio_fps=22050, codec="raw@22050", split="train", transforms=None):
+    def __init__(
+        self,
+        data_dir,
+        audio_len=5.,
+        audio_fps=22050,
+        codec="raw@22050",
+        split="train",
+        transforms=None,
+    ):
         super().__init__()
         assert split in ["train", "test"]
         self.split = split
