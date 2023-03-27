@@ -105,7 +105,7 @@ class ResNetVisual(ResNet):
 
 class ResNetAudio(ResNet):
 
-    def __init__(self, arch_name, num_classes, extract_features, ckpt_path=None, **kwargs):
+    def __init__(self, arch_name, num_classes, extract_features, flatten=False, ckpt_path=None, **kwargs):
         block, layers = get_resnet_layers(arch_name)
         super().__init__(block, layers, num_classes, **kwargs)
         # replacing the old conv1 to the new one (RGB - 3; spectrogram - 1)
@@ -113,13 +113,14 @@ class ResNetAudio(ResNet):
         self.conv1 = torch.nn.Conv2d(1, conv1.out_channels, conv1.kernel_size,
                                      conv1.stride, conv1.padding, bias=conv1.bias)
         self.extract_features = extract_features
+        self.flatten = flatten
 
         # load the ckpt
         load_state_dict_resnet(self, ckpt_path, prefix='afeat_extractor.')
 
         # do not keep fc as they hold ~300k params
         if extract_features:
-            self.avgpool = torch.nn.Identity()
+            # self.avgpool = torch.nn.Identity()
             self.fc = torch.nn.Identity()
 
     def _forward_impl(self, x):
@@ -134,11 +135,12 @@ class ResNetAudio(ResNet):
         x = self.layer3(x)
         x = self.layer4(x)
 
+        x = self.avgpool(x)
+        if self.flatten:
+            x = torch.flatten(x, 1)
         if self.extract_features:
             return x
 
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
         x = self.fc(x)
 
         return x
