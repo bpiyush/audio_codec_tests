@@ -22,6 +22,7 @@ from act.datasets.transforms import (
 )
 from act.datasets.noise import Noise
 from act.datasets.audioset import load_audioset
+from shared.utils.paths import get_data_root_from_hostname
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -138,12 +139,14 @@ if __name__ == "__main__":
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--suffix", type=str, default="")
     parser.add_argument("-c", "--ckpt_path", type=str, default=None)
+    parser.add_argument("--codec", type=str, default="raw", choices=["raw", "aac", "pcms16le"])
+    parser.add_argument("--audio_fps", type=int, default=22050, choices=[22050, 16000])
     args = parser.parse_args()
     
     if args.only_eval:
         args.gpus = [0]
     
-    data_root = "/ssd/pbagad/datasets/"
+    data_root = get_data_root_from_hostname()
 
     # Load feature extractor
     n_snippets = 5
@@ -171,13 +174,14 @@ if __name__ == "__main__":
         audio_transforms.AudioUnsqueezeChannelDim(dim=0),
     ]
     transforms = torchvision.transforms.Compose(transforms)
-    audio_fps = 22050
     train_ds, train_dl = load_dataset(
-        data_root, "train", audio_fps, transforms,
+        data_root, "train", transforms=transforms,
+        audio_fps=args.audio_fps, codec=args.codec,
         batch_size=args.batch_size, num_workers=args.num_workers,
     )
     valid_ds, valid_dl = load_dataset(
-        data_root, "test", audio_fps, transforms,
+        data_root, "test", transforms=transforms,
+        audio_fps=args.audio_fps, codec=args.codec,
         batch_size=args.batch_size, num_workers=args.num_workers,
     )
     

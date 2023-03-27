@@ -75,10 +75,10 @@ class NoiseCodec(torch.utils.data.Dataset):
         return len(self.df)
 
 
-def load_dataset(data_root, split, audio_fps, transforms, batch_size=16, num_workers=8, audio_len=5.):
+def load_dataset(data_root, split, audio_fps, transforms, codec="raw", batch_size=16, num_workers=8, audio_len=5.):
     dataset = NoiseCodec(
         data_dir=os.path.join(data_root, "Noise"),
-        codec=f"raw@{audio_fps}",
+        codec=f"{codec}@{audio_fps}",
         audio_fps=audio_fps,
         audio_len=audio_len,
         split=split,
