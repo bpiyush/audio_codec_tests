@@ -57,7 +57,6 @@ class NoiseCodec(torch.utils.data.Dataset):
             )
         elif audio.shape[0] > self.n_samples:
             audio = audio[:self.n_samples]
-        print(audio.shape)
 
         item["audio"] = audio
 
@@ -74,6 +73,26 @@ class NoiseCodec(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.df)
+
+
+def load_dataset(data_root, split, audio_fps, transforms, batch_size=16, num_workers=8, audio_len=5.):
+    dataset = NoiseCodec(
+        data_dir=os.path.join(data_root, "Noise"),
+        codec=f"raw@{audio_fps}",
+        audio_fps=audio_fps,
+        audio_len=audio_len,
+        split=split,
+        transforms=transforms,
+    )
+    item = dataset[0]
+    assert item["audio"].shape == torch.Size([1, 257, 862])
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+    )
+    batch = next(iter(dataloader))
+    assert batch["audio"].shape == torch.Size([4, 1, 257, 862])
+    return dataset, dataloader
+
 
 
 if __name__ == "__main__":

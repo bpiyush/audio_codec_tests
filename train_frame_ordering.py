@@ -1,7 +1,10 @@
 """Trains frame ordering on audio snippets."""
+import itertools
 
+import numpy as np
 import torch
 import torchvision
+import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -52,21 +55,47 @@ class OrderingModel(torch.nn.Module):
 
 
 class CODECTestAudioFrameOrdering(pl.LightningModule):
-    def __init__(self, cfg, model, n_frames=5):
+    def __init__(self, cfg, model, n_frames=5, K=4):
         super().__init__()
 
         self.cfg = cfg
         self.save_hyperparameters(cfg)
+
         self.model = model
-        self.loss = torch.nn.CrossEntropyLoss()        
+        self.loss = torch.nn.CrossEntropyLoss()
+        self.n_frames = n_frames
+        self.K = K
+        indices = np.arange(self.n_frames)
+        self.perms = np.array(list(itertools.permutations(indices)))
 
     def get_batch_outputs(self, batch):
         inputs = batch["audio"]
-        target = batch["targets"]["noise_target"] - 1
-        if target.max() >= 50 or target.min() < 0:
-            import ipdb; ipdb.set_trace()
-        outputs = self.model(inputs)
-        return {"logits": outputs, "target": target}
+        batch_size = inputs.shape[0]
+        
+        # sample K permutations of the frames
+        sample_from = list(range(len(self.perms)))
+        idxs = np.random.choice(sample_from, self.K, replace=False)
+        perms = self.perms[idxs]
+
+        # Iterate over class label index, permutation
+        all_inputs = []
+        all_target = []
+        for i, perm in zip(idxs, perms):
+            T = inputs.shape[-1]
+            t_indices = np.arange(T)
+            t_snippets = np.array_split(t_indices, self.n_frames)
+            t_snippets = [x[:-2] for x in t_snippets]
+            t_indices = np.concatenate(np.array(t_snippets)[perm])
+            inputs_shuffled = inputs[..., t_indices]
+            # pad the audio to the original length along dim=-1
+            inputs_shuffled = F.pad(inputs_shuffled, (0, T - inputs_shuffled.shape[-1]))
+            all_inputs.append(inputs_shuffled)
+            # Add targets
+            all_target.extend([i] * batch_size)
+        all_inputs = torch.cat(all_inputs, dim=0)
+        target = torch.tensor(all_target).long().to(all_inputs.device)
+        logits = self.model(all_inputs)
+        return {"logits": logits, "target": target}
 
     def training_step(self, batch, batch_idx):
         outputs = self.get_batch_outputs(batch)
@@ -95,7 +124,7 @@ class CODECTestAudioFrameOrdering(pl.LightningModule):
 
 if __name__ == "__main__":
     import argparse
-    
+
     # Read args
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="noise_codec", choices=["noise_codec"])
@@ -110,6 +139,11 @@ if __name__ == "__main__":
     parser.add_argument("--suffix", type=str, default="")
     parser.add_argument("-c", "--ckpt_path", type=str, default=None)
     args = parser.parse_args()
+    
+    if args.only_eval:
+        args.gpus = [0]
+    
+    data_root = "/ssd/pbagad/datasets/"
 
     # Load feature extractor
     n_snippets = 5
@@ -126,3 +160,71 @@ if __name__ == "__main__":
     x = torch.randn(1, 1, 257, 400)
     y = model(x)
     assert y.shape == torch.Size([1, n_classes])
+
+    # Define dataset and dataloader
+    from act.datasets.noise_codec import NoiseCodec, load_dataset
+    import act.datasets.transforms as audio_transforms
+    transforms = [
+        audio_transforms.AudioSpectrogram(n_fft=512, hop_length=128),
+        audio_transforms.AudioLog(),
+        audio_transforms.AudioStandardNormalize(),
+        audio_transforms.AudioUnsqueezeChannelDim(dim=0),
+    ]
+    transforms = torchvision.transforms.Compose(transforms)
+    audio_fps = 22050
+    train_ds, train_dl = load_dataset(
+        data_root, "train", audio_fps, transforms,
+        batch_size=args.batch_size, num_workers=args.num_workers,
+    )
+    valid_ds, valid_dl = load_dataset(
+        data_root, "test", audio_fps, transforms,
+        batch_size=args.batch_size, num_workers=args.num_workers,
+    )
+    
+    cfg = {
+        "optimizer": {"lr": args.lr},
+    }
+    pl_module = CODECTestAudioFrameOrdering(cfg, model)
+
+    # Define W&B logger
+    if args.no_wandb:
+        logger = None
+    else:
+        run_name = f"act-frame-ordering-resnet18-"\
+            f"lr-{args.lr}-bs-{args.batch_size}"
+        if args.suffix:
+            run_name += f"-{args.suffix}"
+        logger = pl.loggers.WandbLogger(
+            project="audio-visual",
+            entity="bpiyush",
+            name=run_name,
+        )
+
+    # Define trainer
+    trainer = pl.Trainer(
+        logger=logger,
+        gpus=args.gpus,
+        max_epochs=args.epochs,
+        log_every_n_steps=2,
+        strategy = DDPStrategy(find_unused_parameters=False),
+    )
+
+    if args.ckpt_path is not None:
+        print(f">>> Initializing with checkpoint: {args.ckpt_path}")
+        state_dict = torch.load(args.ckpt_path, map_location='cpu')['state_dict']
+        pl_module.load_state_dict(state_dict)
+
+    # Run validation
+    if not args.only_train:
+        trainer.validate(
+            pl_module,
+            dataloaders=valid_dl,
+        )
+
+    # Run training
+    if not args.only_eval:
+        trainer.fit(
+            pl_module,
+            train_dataloaders=train_dl,
+            val_dataloaders=valid_dl,
+        )
