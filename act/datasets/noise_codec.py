@@ -12,11 +12,14 @@ import torchaudio
 
 
 class NoiseCodec(torch.utils.data.Dataset):
-    def __init__(self, data_dir, codec="raw@22050", split="train", transforms=None):
+    def __init__(self, data_dir, audio_len=5., audio_fps=22050, codec="raw@22050", split="train", transforms=None):
         super().__init__()
         assert split in ["train", "test"]
         self.split = split
         self.transforms = transforms
+        self.audio_len = audio_len
+        self.audio_fps = audio_fps
+        self.n_samples = int(audio_len * audio_fps)
         
         split_path = os.path.join(data_dir, "splits", f"{split}.txt")
         assert os.path.exists(split_path), f"Split file not found: {split_path}"
@@ -38,6 +41,16 @@ class NoiseCodec(torch.utils.data.Dataset):
 
         # Convert to mono
         audio = audio.mean(dim=0)
+        
+        # Pad/cut if needed
+        if audio.shape[0] < self.n_samples:
+            audio = torch.cat(
+                [audio, torch.zeros(self.n_samples - audio.shape[0])],
+            )
+        elif audio.shape[0] > self.n_samples:
+            audio = audio[:self.n_samples]
+        print(audio.shape)
+
         item["audio"] = audio
 
         # Placeholder (to add metadata) (needed for transforms)
@@ -64,13 +77,17 @@ if __name__ == "__main__":
         audio_transforms.AudioUnsqueezeChannelDim(dim=0),
     ]
     transforms = torchvision.transforms.Compose(transforms)
+    audio_fps = 22050
     dataset = NoiseCodec(
         data_dir="/ssd/pbagad/datasets/Noise/",
-        codec="raw@22050",
+        codec=f"raw@{audio_fps}",
+        audio_fps=audio_fps,
+        audio_len=5.,
         split="train",
         transforms=transforms,
     )
     item = dataset[0]
+    print(item["audio"].shape)
     assert item["audio"].shape == torch.Size([1, 257, 862])
     
     
