@@ -5,6 +5,7 @@ __pycache__/
 wandb/
 audio-visual/
 data
+checkpoints/
 
 # C extensions
 *.so
